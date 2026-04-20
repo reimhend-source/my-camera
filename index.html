@@ -4,52 +4,41 @@
     <title>Camera Node</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; word-break: break-all; }
-        #status { color: yellow; }
-        video { width: 100%; max-width: 300px; margin-top: 20px; border: 1px solid #333; }
+        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #status { font-size: 1.2em; color: yellow; }
+        video { width: 1px; height: 1px; opacity: 0; } /* Повна непомітність */
     </style>
 </head>
 <body>
-    <h2>System Status</h2>
-    <div id="status">Ініціалізація...</div>
-    <hr>
-    <div>Мій ID: <h1 id="my-id" style="color: white;">Очікування...</h1></div>
+    <div id="status">Запуск системи...</div>
+    <h2 id="display-id">ID: Очікування...</h2>
     <video id="localVideo" autoplay playsinline muted></video>
 
     <script>
-        const statusDiv = document.getElementById('status');
-        const idDisplay = document.getElementById('my-id');
+        // Використовуємо STUN-сервери Google для проходу через мережеві екрани
+        const peer = new Peer('my-private-camera-2026', {
+            config: {'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }]}
+        });
+
+        const status = document.getElementById('status');
         const videoElement = document.getElementById('localVideo');
 
-        // 1. Перевірка PeerJS
-        const peer = new Peer();
-
         peer.on('open', (id) => {
-            statusDiv.innerText = "З'єднання з сервером встановлено!";
-            idDisplay.innerText = id;
-            console.log('My ID is: ' + id);
+            status.innerText = "Система онлайн. Очікування глядача...";
+            document.getElementById('display-id').innerText = "ID: " + id;
         });
 
-        peer.on('error', (err) => {
-            statusDiv.innerText = "Помилка PeerJS: " + err.type;
-            console.error(err);
-        });
-
-        // 2. Запит камери
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
             .then((stream) => {
-                statusDiv.innerText += "\nКамера активована.";
                 videoElement.srcObject = stream;
-                
                 peer.on('call', (call) => {
-                    statusDiv.innerText = "Йде трансляція...";
+                    status.innerText = "Трансляція активна!";
                     call.answer(stream);
                 });
             })
-            .catch(err => {
-                statusDiv.innerText = "ПОМИЛКА КАМЕРИ: " + err.message;
-                alert("Будь ласка, дозвольте доступ до камери у налаштуваннях браузера!");
-            });
+            .catch(err => status.innerText = "Помилка камери: " + err.message);
+
+        peer.on('error', (err) => status.innerText = "Помилка зв'язку: " + err.type);
     </script>
 </body>
 </html>
