@@ -1,36 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Viewer Node</title>
+    <title>Camera Node</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { background: #111; color: white; font-family: sans-serif; text-align: center; }
-        video { width: 90%; border: 2px solid #0f0; margin-top: 20px; background: #000; }
-        input { padding: 10px; width: 200px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; cursor: pointer; background: #0f0; border: none; font-weight: bold; }
+        body { background: #000; color: #0f0; font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #status { font-size: 1.2em; color: yellow; }
+        video { width: 1px; height: 1px; opacity: 0; } /* Повна непомітність */
     </style>
 </head>
 <body>
-    <h2>Remote Monitor</h2>
-    <input type="text" id="remote-id" placeholder="Введіть ID камери">
-    <button onclick="connectToCamera()">Дивитись</button>
-    <br>
-    <video id="remoteVideo" autoplay playsinline></video>
+    <div id="status">Запуск системи...</div>
+    <h2 id="display-id">ID: Очікування...</h2>
+    <video id="localVideo" autoplay playsinline muted></video>
 
     <script>
-        const peer = new Peer();
-        const videoElement = document.getElementById('remoteVideo');
+        // Використовуємо STUN-сервери Google для проходу через мережеві екрани
+        const peer = new Peer('my-private-camera-2026', {
+            config: {'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }]}
+        });
 
-        function connectToCamera() {
-            const remoteId = document.getElementById('remote-id').value;
-            // Телефонуємо на пристрій-камеру. 
-            // Ми маємо передати пустий потік або запит, щоб отримати відповідь
-            const call = peer.call(remoteId, new MediaStream()); 
-            
-            call.on('stream', (remoteStream) => {
-                videoElement.srcObject = remoteStream;
-            });
-        }
+        const status = document.getElementById('status');
+        const videoElement = document.getElementById('localVideo');
+
+        peer.on('open', (id) => {
+            status.innerText = "Система онлайн. Очікування глядача...";
+            document.getElementById('display-id').innerText = "ID: " + id;
+        });
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
+            .then((stream) => {
+                videoElement.srcObject = stream;
+                peer.on('call', (call) => {
+                    status.innerText = "Трансляція активна!";
+                    call.answer(stream);
+                });
+            })
+            .catch(err => status.innerText = "Помилка камери: " + err.message);
+
+        peer.on('error', (err) => status.innerText = "Помилка зв'язку: " + err.type);
     </script>
 </body>
 </html>
