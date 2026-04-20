@@ -5,40 +5,34 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { background: #111; color: white; font-family: sans-serif; text-align: center; }
-        video { width: 100%; max-width: 800px; border: 2px solid #0f0; margin-top: 20px; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #0f0; border: none; border-radius: 5px; margin-top: 20px; }
+        video { width: 90%; max-width: 640px; border: 2px solid #0f0; margin-top: 20px; background: #000; }
+        button { padding: 20px; font-size: 20px; background: #0f0; border: none; cursor: pointer; margin: 10px; }
     </style>
 </head>
 <body>
     <h2>Панель спостереження</h2>
-    <button onclick="connect()">Підключитися до камери</button>
-    <div id="info" style="margin-top: 10px; color: #888;"></div>
-    <video id="remoteVideo" autoplay playsinline></video>
+    <button onclick="startView()">УВІМКНУТИ КАМЕРУ</button>
+    <div id="log" style="color: #888;"></div>
+    <video id="remoteVideo" autoplay playsinline muted></video>
+    <p><i>Якщо відео з'явилося без звуку, натисніть "Увімкнути звук"</i></p>
+    <button onclick="document.getElementById('remoteVideo').muted = false" style="background: gray; font-size: 14px;">Увімкнути звук</button>
 
     <script>
         const peer = new Peer({
             config: {'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }]}
         });
-        const info = document.getElementById('info');
+        const log = document.getElementById('log');
 
-        function connect() {
-            info.innerText = "Спроба підключення...";
-            // Викликаємо камеру за фіксованим ID
+        function startView() {
+            log.innerText = "З'єднуюсь...";
             const call = peer.call('my-private-camera-2026', new MediaStream());
             
             call.on('stream', (remoteStream) => {
-                info.innerText = "З'єднання встановлено!";
-                document.getElementById('remoteVideo').srcObject = remoteStream;
+                log.innerText = "Стрім отримано!";
+                const vid = document.getElementById('remoteVideo');
+                vid.srcObject = remoteStream;
+                vid.play(); // Примусовий запуск
             });
-
-            call.on('error', (err) => info.innerText = "Помилка: " + err);
-            
-            // Якщо через 5 секунд немає стріму, ймовірно, камера офлайн
-            setTimeout(() => {
-                if (!document.getElementById('remoteVideo').srcObject) {
-                    info.innerText = "Камера не відповідає. Перевірте, чи відкрита сторінка на смартфоні.";
-                }
-            }, 5000);
         }
     </script>
 </body>
